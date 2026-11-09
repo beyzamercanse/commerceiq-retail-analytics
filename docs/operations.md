@@ -4,62 +4,43 @@
 
 From the repository root:
 
-\`\`\`bash
+```bash
 cp .env.example .env
 python -m pip install -e '.[dev,dashboard]' 'dbt-postgres>=1.9,<2'
 docker compose up -d --wait
 export DBT_PROFILES_DIR=analytics
 commerceiq-refresh --data-dir data/sample_olist
+commerceiq-audit --min-orders 3 --out artifacts/quality_audit.json
 streamlit run dashboard/app.py
-\`\`\`
+```
 
-On Windows PowerShell, activate your environment and use \`$env:DBT_PROFILES_DIR="analytics"\`.
-If you change the PostgreSQL password in \`.env\`, also set \`DBT_PASSWORD\`.
+The audited refresh first reads the source CSVs, skips unchanged file hashes, builds and tests dbt, then records success or failure in `ops.pipeline_runs`. A failed dbt build does not roll back previously ingested raw batches; retrying the same files is safe.
 
-### Responsibilities
+`commerceiq-audit` independently checks source manifest coverage, order and line-level grain, and dated daily-mart totals. It emits aggregate-only JSON and exits nonzero on a violation. **This proves consistency with the loaded source, not the authenticity of an external dataset or accounting revenue.**
 
-1. \`commerceiq-refresh\` starts an audited run in \`ops.pipeline_runs\`.
-2. Python validates each CSV and records immutable source files by SHA-256.
-3. dbt builds staging/intermediate/marts and executes data-quality tests.
-4. The audit row records success or failure, batch counters, and completion timestamp.
-5. The Streamlit Operations page displays ingestion timestamps and audited runs.
-
-The job is repeatable: unchanged raw input is skipped, while dbt still refreshes the derived warehouse.
-A failed dbt build does **not** roll back prior successful raw ingestion. Running again is safe for identical file content.
-
-## Reporting verification
-
-\`\`\`bash
-pytest
-pytest -o addopts= -m reporting
-dbt docs generate --project-dir analytics --profiles-dir analytics
-\`\`\`
-
-GitHub Actions creates a disposable PostgreSQL service, ingests synthetic fixtures, builds dbt, runs an audited refresh, and checks SQL-based reporting results and the dashboard's revenue view. This **does not** deploy a hosted app.
-
-## Dataset and metric caveats
-
-- The bundled nine CSV files are **synthetic smoke-test inputs**. Load the real historical Olist CSVs into \`data/olist/\` before interpreting metrics.
-- Source records cover historical 2016–2018 commerce activity, **not** a current or streaming market.
-- BRL item values are merchandise amounts, not profit or recognized revenue.
-- Split payments, canceled orders and missing items affect reconciliation; a discrepancy is an investigation candidate.
-- Monthly cohorts are right-censored near the dataset end. No causal inference is implied.
-- Ingestion "last loaded" timestamps mean *our load time*, not source-event freshness or contractual SLA.
-- Raw storage is append-only by file hash; later source batches supersede business records in staging based on load order. This is not true CDC history.
+CI runs with a disposable PostgreSQL service, creates the mart tables from synthetic fixtures, checks the audit and reader-role permissions, and uploads the JSON audit as a job artifact.
 
 ## Failure and recovery
 
-| Situation | Response |
+| Problem | Action |
 |---|---|
-| Missing CSV/header mismatch | Fix source file or use \`--allow-partial\` to intentionally accept a subset |
-| PostgreSQL unavailable | Start Docker, verify credentials and run \`commerceiq status\` |
-| dbt build fails | Inspect dbt logs, repair source/model, rerun \`commerceiq-refresh\` |
-| Reports show old data | Verify latest \`ops.pipeline_runs\` status and rerun warehouse build |
-| Dashboard connection failure | Check \`DATABASE_URL\`, \`DBT_SCHEMA\`, PostgreSQL and the mart tables |
-| Automated cloud refresh requested | Provision a persistent DB and scheduler first; GitHub CI's DB is disposable |
+| Missing CSV | Inspect source folder and filenames |
+| Unexpected CSV columns | Check exact Olist header; ingestion is transactional per file |
+| PostgreSQL unavailable | Start Docker Compose and verify connection settings |
+| dbt model/test fails | Inspect dbt logs, correct source/model, repeat audited refresh |
+| Audit fails | Compare the violated grain/metric count with staged and fact records |
+| Streamlit cannot connect | Verify TLS/network, read-only URL, and `DBT_SCHEMA` |
+| CI failure | Inspect the failed job and uploaded audit artifact, if generated |
 
-No hosted database, hosted dashboard, scheduler, customer alerting or SLA is configured in this phase.
+## Data limitations
 
-## Recommended enhancements
+- Fixture CSVs are synthetic; Olist records are historical (2016–2018).
+- Brazilian-real merchandise values exclude accounting adjustments and are not recognized revenue.
+- Cohorts near dataset end are right-censored.
+- An anomalous payment difference is an investigation candidate, not confirmed leakage.
+- Last-loaded timestamps record CommerceIQ ingestion time, not source-system freshness.
+- Ingestion is append-only by file hash, not a full change-data-capture system.
 
-Set a documented source-freshness target only after moving beyond static Olist files. For production-like deployment, configure secret-managed hosted PostgreSQL, persistent scheduling, retries and alerts, read-only dashboard credentials, and monitoring of expected daily partitions.
+## Production caveats
+
+There is **no public hosted app or managed database configured by the repository**. See [deployment steps](deployment.md). Hosted environments require backups, credentials segregation, careful data access controls and provider billing review. Olist is a static historical dataset, so automatic daily refresh is not meaningful without new data.

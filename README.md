@@ -2,21 +2,24 @@
 
 [![CI](https://github.com/beyzamercanse/commerceiq-retail-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/beyzamercanse/commerceiq-retail-analytics/actions/workflows/ci.yml)
 
-Portfolio data platform: **Python ingestion → PostgreSQL → dbt warehouse → Streamlit BI → audited refresh and monitoring**.
+**Python ingestion → PostgreSQL → dbt warehouse → Streamlit BI → audited refresh**
 
-## Features
+A practical Analytics Engineering portfolio project illustrating transactional source ingestion, correct business grains, analytics marts and repeatable reporting checks.
 
-- **Ingestion:** original nine Olist CSV contracts, transactional batches, SHA-256 idempotency and load lineage.
-- **Analytics:** dbt staging, intermediate one-order aggregation, customer/product/seller dimensions, order/item/payment facts and four marts.
-- **Reporting:** five Streamlit pages — revenue, retention, delivery, reconciliation and operations.
-- **Operations:** \`commerceiq-refresh\` orchestrates ingestion + dbt and records completion status, batch counts, duration timestamps and failure details.
-- **Quality:** Python unit/integration tests, dbt generic and singular SQL tests, GitHub CI and reporting smoke checks.
+## Built features
 
-## Quickstart (local)
+- **Ingestion:** Nine Olist CSV contracts, SHA-256 idempotency and raw lineage.
+- **Transformations:** dbt staging, intermediate aggregates, customer/product/seller dimensions, facts and four marts.
+- **Dashboards:** Five Streamlit pages covering revenue, retention, delivery, reconciliation and operations.
+- **Operations:** Audited batch refreshes, data lineage, run history and recovery.
+- **Quality:** Python, PostgreSQL, dbt and dashboard tests plus `commerceiq-audit` for independent aggregate checks.
+- **Deployment preparation:** Streamlit Cloud dependency/config files, safe secrets template and separate read-only PostgreSQL role.
 
-Prerequisites: Python 3.11+, Docker Compose and Git.
+## Run locally
 
-\`\`\`bash
+Prerequisites: Python 3.11+, Docker Compose, Git.
+
+```bash
 git clone https://github.com/beyzamercanse/commerceiq-retail-analytics.git
 cd commerceiq-retail-analytics
 cp .env.example .env
@@ -26,53 +29,38 @@ python -m pip install -e '.[dev,dashboard]' 'dbt-postgres>=1.9,<2'
 docker compose up -d --wait
 export DBT_PROFILES_DIR=analytics
 commerceiq-refresh --data-dir data/sample_olist
+commerceiq-audit --min-orders 3 --out artifacts/sample_audit.json
 streamlit run dashboard/app.py
-\`\`\`
+```
 
-Open the local Streamlit URL printed in your terminal (normally http://localhost:8501).
+On Windows use PowerShell activation and `$env:DBT_PROFILES_DIR="analytics"`. Override `DBT_PASSWORD` when using non-default credentials.
 
-**The included sample data is synthetic.** For real historical analysis, download the original [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), save the original CSVs to \`data/olist/\` (gitignored), then run:
+**Bundled data is synthetic.** For a historical real-data run, download the original [Olist public dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), place its nine CSVs under `data/olist/`, then run:
 
-\`\`\`bash
+```bash
 commerceiq-refresh --data-dir data/olist
-\`\`\`
+commerceiq-audit --min-orders 90000 --out artifacts/full_olist_audit.json
+```
 
-Olist data is historical, not a live retail feed. Reconciliation differences are not automatically lost revenue, and item merchandise value is not accounting-recognized revenue.
+The minimum count is a coarse coverage check, **not proof of original data provenance**. Olist records are historical (2016–2018); merchandise value is not recognized revenue or profit.
 
-## Warehouse model grains
+## Warehouse grains
 
 | Model | Grain |
 |---|---|
-| \`fct_orders\` | One order |
-| \`fct_order_items\` | One order item |
-| \`fct_payments\` | One payment entry |
-| \`dim_customers\` | One stable customer identity |
-| \`mart_revenue_daily\` | One purchase day |
-| \`mart_payment_reconciliation\` | One order |
-| \`mart_customer_retention\` | Cohort month × months after first purchase |
-| \`mart_delivery_performance\` | One purchase day |
+| `fct_orders` | One order |
+| `fct_order_items` | One order item |
+| `fct_payments` | One payment entry |
+| `dim_customers` | One stable customer identity |
+| `mart_revenue_daily` | Purchase day |
+| `mart_payment_reconciliation` | Order |
+| `mart_customer_retention` | Cohort month × month offset |
+| `mart_delivery_performance` | Purchase day |
 
-**Data grain safeguard:** order items and split payments are aggregated separately before joining at the order level.
-
-## Run tests
-
-\`\`\`bash
-pytest
-pytest -o addopts= -m integration
-pytest -o addopts= -m reporting
-dbt build --project-dir analytics
-\`\`\`
-
-The reporting tests require a built warehouse and an audited refresh. CI provisions a temporary Postgres instance and performs those steps in order.
+**Critical design choice:** Item lines and split payments are aggregated separately to order grain to prevent multiplicative joins.
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [dbt model design](analytics/README.md)
-- [Data contracts](docs/data-contracts.md)
-- [Operations and recovery](docs/operations.md)
-- [Project roadmap](docs/roadmap.md)
+[Architecture](docs/architecture.md) · [Data contracts](docs/data-contracts.md) · [Warehouse](analytics/README.md) · [Operations](docs/operations.md) · [Deployment](docs/deployment.md) · [Interview demonstration](docs/demo_script.md) · [Roadmap](docs/roadmap.md)
 
-## Scope
-
-This project is runnable locally. A deployed public dashboard, production database, persistent scheduler, and live monitoring are **not included**. GitHub Actions verifies each commit using disposable test infrastructure.
+**Deployment status:** Code is ready for Streamlit Community Cloud and an externally provisioned PostgreSQL database. No public dashboard URL, persistent database or full Olist verification has been established; CI uses temporary PostgreSQL and synthetic records.

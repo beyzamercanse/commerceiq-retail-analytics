@@ -16,3 +16,5 @@ data/processed/
 analytics/target/
 analytics/logs/
 .streamlit/secrets.toml
+.streamlit/secrets.toml
+artifacts/

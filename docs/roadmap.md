@@ -1,10 +1,12 @@
 # CommerceIQ implementation roadmap
 
-- [x] Phase 1 — Python CSV contracts, idempotent PostgreSQL ingestion, CI tests.
-- [x] Phase 2 — dbt staging, intermediate aggregates, dimensional facts, revenue/retention/delivery/reconciliation marts.
-- [x] Phase 3 — Streamlit dashboards, audited refresh command, source and run monitoring, SQL reporting tests and CI smoke checks.
-- [ ] Phase 4 (optional) — Real historical Olist data validation, read-only DB roles, persistent hosted PostgreSQL, deployed dashboards, scheduled orchestration and alerting.
+- [x] Phase 1 — Nine CSV source contracts, idempotent PostgreSQL ingestion, CI.
+- [x] Phase 2 — dbt staging, dimensional facts and business marts.
+- [x] Phase 3 — Streamlit dashboards, audited refresh, reporting tests.
+- [x] Phase 4A — Warehouse audit CLI, aggregate quality evidence in CI, least-privilege dashboard reader design, deployment instructions and interview demo.
+- [ ] Phase 4B — Load and verify the original full Olist dataset, provision persistent hosted PostgreSQL, grant read-only credentials and publish the actual hosted Streamlit app.
+- [ ] Optional — Scheduled ingestion and operational alerts when a changing data source is introduced.
 
-**Phase 3 is a runnable local application, not an externally hosted live BI service.** All reported result samples in CI use synthetic datasets, and CI must pass before this milestone is considered verified.
+**Phase 4A adds deployment-ready code, not a deployed cloud service.** CI uses disposable PostgreSQL and synthetic fixtures.
 
-Documentation: [Operations](operations.md), [Architecture](architecture.md), [Data Contracts](data-contracts.md), [dbt models](../analytics/README.md).
+See [Deployment](deployment.md), [Operations](operations.md), [Demo](demo_script.md), and [Architecture](architecture.md).

@@ -1,0 +1,2 @@
+# Streamlit Community Cloud installs this local project and the dashboard extras.
+-e .[dashboard]
