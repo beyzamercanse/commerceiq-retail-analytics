@@ -1,7 +1,8 @@
 """CommerceIQ command-line interface."""
+
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import psycopg
 

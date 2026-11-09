@@ -1,10 +1,11 @@
 """Transactional, append-only CSV ingestion and source manifest."""
+
 from __future__ import annotations
 
 import csv
 import hashlib
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from commerceiq.sources import SOURCES, SourceSpec, source_files
 
@@ -68,31 +69,30 @@ def ingest_file(conn, spec: SourceSpec, path: Path) -> tuple[str, int]:
     from psycopg import sql
 
     digest = sha256_file(path)
-    with conn.transaction():
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT row_count FROM raw.source_files WHERE source_name=%s AND file_sha256=%s",
-                (spec.table, digest),
-            )
-            previous = cursor.fetchone()
-            if previous is not None:
-                return "skipped", int(previous[0])
+    with conn.transaction(), conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT row_count FROM raw.source_files WHERE source_name=%s AND file_sha256=%s",
+            (spec.table, digest),
+        )
+        previous = cursor.fetchone()
+        if previous is not None:
+            return "skipped", int(previous[0])
 
-            columns = ["_source_sha256", "_row_number", *spec.columns]
-            statement = sql.SQL("COPY {} ({}) FROM STDIN").format(
-                sql.Identifier("raw", spec.table),
-                sql.SQL(", ").join(map(sql.Identifier, columns)),
-            )
-            count = 0
-            with cursor.copy(statement) as copy:
-                for row_number, fields in csv_records(path, spec.columns):
-                    copy.write_row((digest, row_number, *fields))
-                    count += 1
-            cursor.execute(
-                """INSERT INTO raw.source_files (source_name, file_sha256, file_name, row_count)
-                   VALUES (%s, %s, %s, %s)""",
-                (spec.table, digest, path.name, count),
-            )
+        columns = ["_source_sha256", "_row_number", *spec.columns]
+        statement = sql.SQL("COPY {} ({}) FROM STDIN").format(
+            sql.Identifier("raw", spec.table),
+            sql.SQL(", ").join(map(sql.Identifier, columns)),
+        )
+        count = 0
+        with cursor.copy(statement) as copy:
+            for row_number, fields in csv_records(path, spec.columns):
+                copy.write_row((digest, row_number, *fields))
+                count += 1
+        cursor.execute(
+            """INSERT INTO raw.source_files (source_name, file_sha256, file_name, row_count)
+               VALUES (%s, %s, %s, %s)""",
+            (spec.table, digest, path.name, count),
+        )
     return "loaded", count
 
 
@@ -116,13 +116,12 @@ def ingest_directory(dsn: str, data_dir: Path, *, strict: bool = False) -> list[
 def source_status(dsn: str) -> list[tuple[str, int, int]]:
     import psycopg
 
-    with psycopg.connect(dsn) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT to_regclass('raw.source_files')")
-            if cursor.fetchone()[0] is None:
-                raise RuntimeError("Database is not initialized. Run: commerceiq init-db")
-            cursor.execute("""
-                SELECT source_name, count(*) AS files, sum(row_count) AS rows
-                FROM raw.source_files GROUP BY source_name ORDER BY source_name
-            """)
-            return [(row[0], int(row[1]), int(row[2])) for row in cursor.fetchall()]
+    with psycopg.connect(dsn) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT to_regclass('raw.source_files')")
+        if cursor.fetchone()[0] is None:
+            raise RuntimeError("Database is not initialized. Run: commerceiq init-db")
+        cursor.execute("""
+            SELECT source_name, count(*) AS files, sum(row_count) AS rows
+            FROM raw.source_files GROUP BY source_name ORDER BY source_name
+        """)
+        return [(row[0], int(row[1]), int(row[2])) for row in cursor.fetchall()]

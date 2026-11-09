@@ -1,12 +1,15 @@
 """Source contracts for the nine Olist CSVs; original column spellings retained."""
+
 from dataclasses import dataclass
 from pathlib import Path
+
 
 @dataclass(frozen=True)
 class SourceSpec:
     filename: str
     table: str
     columns: tuple[str, ...]
+
 
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec("olist_customers_dataset.csv", "customers", (
@@ -31,6 +34,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec("product_category_name_translation.csv", "category_translation", (
         "product_category_name", "product_category_name_english")),
 )
+
 
 def source_files(data_dir: Path, *, strict: bool = False) -> list[tuple[SourceSpec, Path]]:
     available = [(spec, data_dir / spec.filename) for spec in SOURCES]
