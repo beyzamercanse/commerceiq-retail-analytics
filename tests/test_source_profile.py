@@ -5,7 +5,6 @@ from pathlib import Path
 
 from commerceiq.source_profile import inspect_directory
 
-
 DATA = Path(__file__).resolve().parents[1] / "data" / "sample_olist"
 
 
