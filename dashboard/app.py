@@ -191,7 +191,7 @@ def main() -> None:
             reconciliation_page(dsn, first, last)
         else:
             operations_page(dsn)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - sanitize UI errors at the app boundary
         # Avoid showing DSNs, which may contain database credentials.
         st.error(
             f"Reporting is unavailable ({type(exc).__name__}). "
