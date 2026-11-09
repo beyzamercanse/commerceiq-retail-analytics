@@ -1,0 +1,80 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: One row per stable customer_unique_id.
+    columns:
+      - name: customer_unique_id
+        data_tests: [not_null, unique]
+  - name: dim_products
+    columns:
+      - name: product_id
+        data_tests: [not_null, unique]
+  - name: dim_sellers
+    columns:
+      - name: seller_id
+        data_tests: [not_null, unique]
+  - name: fct_orders
+    description: One record per order. Item and payment totals are computed separately.
+    columns:
+      - name: order_id
+        data_tests: [not_null, unique]
+      - name: order_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['delivered', 'shipped', 'processing', 'approved', 'created', 'invoiced', 'canceled', 'unavailable']
+      - name: customer_unique_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_unique_id
+  - name: fct_order_items
+    columns:
+      - name: order_id
+        data_tests: [not_null]
+      - name: order_item_id
+        data_tests: [not_null]
+      - name: product_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
+      - name: seller_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_sellers')
+                field: seller_id
+  - name: fct_payments
+    columns:
+      - name: order_id
+        data_tests: [not_null]
+      - name: payment_sequential
+        data_tests: [not_null]
+  - name: mart_revenue_daily
+    columns:
+      - name: purchase_date
+        data_tests: [not_null, unique]
+  - name: mart_payment_reconciliation
+    columns:
+      - name: order_id
+        data_tests: [not_null, unique]
+      - name: reconciliation_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['no_items_or_payments', 'payment_without_items', 'items_without_payments', 'balanced', 'investigate']
+  - name: mart_customer_retention
+    columns:
+      - name: cohort_month
+        data_tests: [not_null]
+      - name: months_since_first_purchase
+        data_tests: [not_null]
+  - name: mart_delivery_performance
+    columns:
+      - name: purchase_date
+        data_tests: [not_null, unique]
+

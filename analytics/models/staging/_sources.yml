@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: olist_raw
+    description: Immutable, text-typed Olist CSV records loaded by CommerceIQ ingestion.
+    schema: raw
+    tables:
+      - name: customers
+      - name: orders
+      - name: order_items
+      - name: payments
+      - name: reviews
+      - name: products
+      - name: sellers
+      - name: category_translation
+      - name: geolocation
+

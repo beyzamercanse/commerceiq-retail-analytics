@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  python-tests:
+  python-and-warehouse:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -22,6 +22,13 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://commerceiq:commerceiq_ci@localhost:5432/commerceiq
+      DBT_HOST: localhost
+      DBT_PORT: "5432"
+      DBT_USER: commerceiq
+      DBT_PASSWORD: commerceiq_ci
+      DBT_DATABASE: commerceiq
+      DBT_SCHEMA: analytics
+      DBT_PROFILES_DIR: analytics
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,10 +36,19 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install dependencies
-        run: python -m pip install -e '.[dev]'
-      - name: Lint
+        run: python -m pip install -e '.[dev]' 'dbt-postgres>=1.9,<2'
+      - name: Python lint
         run: ruff check .
-      - name: Unit tests
+      - name: Python unit tests
         run: pytest
-      - name: Database integration test
+      - name: PostgreSQL ingestion integration
         run: pytest -o addopts= -m integration
+      - name: Ingest sample CSVs
+        run: commerceiq ingest --data-dir data/sample_olist --strict
+      - name: Verify dbt connection and compilation
+        run: dbt debug --project-dir analytics && dbt compile --project-dir analytics
+      - name: Build and test analytics warehouse
+        run: dbt build --project-dir analytics
+      - name: Verify dbt documentation generation
+        run: dbt docs generate --project-dir analytics
+

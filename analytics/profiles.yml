@@ -1,0 +1,13 @@
+commerceiq:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      port: "{{ env_var('DBT_PORT', '5432') | int }}"
+      user: "{{ env_var('DBT_USER', 'commerceiq') }}"
+      password: "{{ env_var('DBT_PASSWORD', 'commerceiq_local_dev') }}"
+      dbname: "{{ env_var('DBT_DATABASE', 'commerceiq') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'analytics') }}"
+      threads: 4
+

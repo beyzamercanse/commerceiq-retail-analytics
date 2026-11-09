@@ -1,16 +1,23 @@
-# Architecture
+# CommerceIQ warehouse architecture
 
-```mermaid
+\`\`\`mermaid
 flowchart TB
-  A[Olist CSV source] --> B[Python typed CSV/header validation]
-  B --> C[PostgreSQL raw.*]
-  B --> D[SHA-256 file manifest]
-  C --> E[dbt staging - Phase 2]
-  D --> E
-  E --> F[Dimensional marts - Phase 2]
-  F --> G[Dashboards - Phase 3]
-```
+    A[Olist source CSVs] --> B[Python source validation and batch ingestion]
+    B --> C[(PostgreSQL raw schema)]
+    B --> D[Source hash, load timestamp, batch manifest]
+    C --> E[dbt staging - 9 models]
+    E --> F[dbt intermediate order aggregations]
+    E --> G[dbt customer, seller and product dimensions]
+    E --> H[dbt line facts - items and payments]
+    F --> I[dbt order fact]
+    G --> I
+    I --> J[Revenue, retention, delivery and reconciliation marts]
+    H --> K[dbt reconciliation tests]
+    I --> K
+    J --> L[Business intelligence - Phase 3]
+\`\`\`
 
-Raw columns retain original text values. Each file is copied in a database transaction with an audit manifest. Same-content reruns are skipped based on SHA-256. This is an append-only raw store: effective-version merging is future work.
+**Raw** text columns preserve original input values and lineage. **Staging** applies type conversions and deduplication by business key. **Intermediate** groups multivalued item and payment sources before joining to the **order grain**. **Marts** expose curated analytical tables.
 
-Do not directly join order items and payments: both have multiple records per order and create a fanout. In the next milestone, aggregate to compatible grains or use separate fact tables.
+CI tests source ingestion with PostgreSQL and then builds the dbt project. Historical reprocessing uses the existing source-file SHA-256 idempotency mechanism.
+
