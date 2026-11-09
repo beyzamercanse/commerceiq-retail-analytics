@@ -66,12 +66,11 @@ def run_audit(dsn: str, *, min_orders: int = 1) -> dict:
         ),
     }
     counts = {}
-    with psycopg.connect(dsn) as connection, connection.cursor() as cursor:
-        with connection.transaction():
-            cursor.execute("SET TRANSACTION READ ONLY")
-            for name, statement in queries.items():
-                cursor.execute(sql.SQL(statement).format(marts=marts, staging=staging))
-                counts[name] = int(cursor.fetchone()[0])
+    with psycopg.connect(dsn) as connection, connection.transaction(), connection.cursor() as cursor:
+        cursor.execute("SET TRANSACTION READ ONLY")
+        for name, statement in queries.items():
+            cursor.execute(sql.SQL(statement).format(marts=marts, staging=staging))
+            counts[name] = int(cursor.fetchone()[0])
     checks = evaluate(counts, min_orders=min_orders)
     return {
         "status": "pass" if all(c.passed for c in checks) else "fail",
