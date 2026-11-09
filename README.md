@@ -63,4 +63,20 @@ The minimum count is a coarse coverage check, **not proof of original data prove
 
 [Architecture](docs/architecture.md) · [Data contracts](docs/data-contracts.md) · [Warehouse](analytics/README.md) · [Operations](docs/operations.md) · [Deployment](docs/deployment.md) · [Interview demonstration](docs/demo_script.md) · [Roadmap](docs/roadmap.md)
 
+## Cloud deployment and source profiling
+
+The repository now includes a Docker web image and a private loader image for Railway. `commerceiq-profile` checks the nine input CSVs for missing sources, unexpected headers, malformed records, duplicate business keys, and insufficient record volume.
+
+```bash
+commerceiq-profile --data-dir data/sample_olist --min-orders 3
+# After obtaining the original Olist historical CSVs:
+commerceiq-profile --data-dir data/olist --min-orders 90000 --out artifacts/source_profile.json
+```
+
+[Railway deployment playbook](docs/railway-deployment.md) · [Streamlit alternative](docs/deployment.md)
+
+Original data source: [Olist Brazilian E-Commerce on Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce); dataset license [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Public derived reports require attribution and license compliance.
+
+**A live site is not deployed yet.** The CI database is disposable; the full Olist data is not included in this GitHub repository.
+
 **Deployment status:** Code is ready for Streamlit Community Cloud and an externally provisioned PostgreSQL database. No public dashboard URL, persistent database or full Olist verification has been established; CI uses temporary PostgreSQL and synthetic records.

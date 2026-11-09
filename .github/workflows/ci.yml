@@ -43,6 +43,8 @@ jobs:
         run: pytest
       - name: PostgreSQL ingestion integration
         run: pytest -o addopts= -m integration
+      - name: Inspect source CSV contracts and business keys
+        run: commerceiq-profile --data-dir data/sample_olist --min-orders 3 --out artifacts/source_profile.json
       - name: Ingest sample CSVs
         run: commerceiq ingest --data-dir data/sample_olist --strict
       - name: Verify dbt connection and compilation
@@ -60,7 +62,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: commerceiq-warehouse-audit
-          path: artifacts/quality_audit.json
+          path: |
+            artifacts/quality_audit.json
+            artifacts/source_profile.json
           if-no-files-found: ignore
       - name: Verify dbt documentation
         run: dbt docs generate --project-dir analytics
+      - name: Build web and loader Docker images
+        run: |
+          docker build -f Dockerfile -t commerceiq-web:ci .
+          docker build -f Dockerfile.worker -t commerceiq-loader:ci .

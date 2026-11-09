@@ -1,12 +1,13 @@
-# CommerceIQ implementation roadmap
+# CommerceIQ milestone roadmap
 
-- [x] Phase 1 — Nine CSV source contracts, idempotent PostgreSQL ingestion, CI.
-- [x] Phase 2 — dbt staging, dimensional facts and business marts.
-- [x] Phase 3 — Streamlit dashboards, audited refresh, reporting tests.
-- [x] Phase 4A — Warehouse audit CLI, aggregate quality evidence in CI, least-privilege dashboard reader design, deployment instructions and interview demo.
-- [ ] Phase 4B — Load and verify the original full Olist dataset, provision persistent hosted PostgreSQL, grant read-only credentials and publish the actual hosted Streamlit app.
-- [ ] Optional — Scheduled ingestion and operational alerts when a changing data source is introduced.
+- [x] Phase 1 — Nine CSV contracts, PostgreSQL ingestion and tests.
+- [x] Phase 2 — dbt staging, dimensional facts, marts and SQL tests.
+- [x] Phase 3 — Streamlit dashboards, audited refresh, reporting smoke tests.
+- [x] Phase 4A — Warehouse audit CLI, read-only database role and deployment documentation.
+- [x] Phase 4B code — Full-data CSV profiler, Docker web/loader images, Railway deployment playbook and container CI builds.
+- [ ] Phase 4B hosting — Connect Railway, provision private PostgreSQL, load and audit original Olist, configure limited user and publish working public web URL.
+- [ ] Optional later — Scale benchmarks, lineage and handling changing source feeds.
 
-**Phase 4A adds deployment-ready code, not a deployed cloud service.** CI uses disposable PostgreSQL and synthetic fixtures.
+**CI validates synthetic inputs; it is not evidence of a live website or full original dataset ingestion.**
 
-See [Deployment](deployment.md), [Operations](operations.md), [Demo](demo_script.md), and [Architecture](architecture.md).
+See [Railway deployment](railway-deployment.md), [Operations](operations.md), and [Demo](demo_script.md).

@@ -166,6 +166,10 @@ def main() -> None:
     st.set_page_config(page_title="CommerceIQ | Retail Analytics", layout="wide")
     st.title("CommerceIQ")
     st.caption("Retail analytics engineering | PostgreSQL · dbt · Python")
+    st.caption(
+        "Data: Olist Brazilian E-Commerce (2016–2018), CC BY-NC-SA 4.0 — "
+        "[original source](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)."
+    )
     st.warning(
         "Results use your configured database. Bundled test CSVs are synthetic. "
         "This is not a live commerce or production system."

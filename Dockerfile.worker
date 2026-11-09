@@ -1,0 +1,9 @@
+# One-off, private data bootstrap image (not a public web service).
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY pyproject.toml ./
+COPY src/ ./src/
+RUN python -m pip install --no-cache-dir -e . "dbt-postgres>=1.9,<2" "kagglehub>=1.0.2,<2"
+COPY analytics/ ./analytics/
+CMD ["python", "-m", "commerceiq.cloud_bootstrap"]
