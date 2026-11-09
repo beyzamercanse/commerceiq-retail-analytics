@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "commerceiq-retail-analytics"
+version = "0.1.0"
+description = "Reproducible retail analytics engineering platform using Olist data"
+requires-python = ">=3.11"
+dependencies = ["psycopg[binary]>=3.2,<4", "python-dotenv>=1.0,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.7,<1"]
+
+[project.scripts]
+commerceiq = "commerceiq.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: requires PostgreSQL"]
+addopts = "-m 'not integration'"
+
+[tool.ruff]
+line-length = 100
