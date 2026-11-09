@@ -13,3 +13,6 @@ dist/
 data/olist/
 data/raw/
 data/processed/
+analytics/target/
+analytics/logs/
+.streamlit/secrets.toml

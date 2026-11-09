@@ -4,24 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "commerceiq-retail-analytics"
-version = "0.1.0"
-description = "Reproducible retail analytics engineering platform using Olist data"
+version = "0.3.0"
+description = "Retail analytics platform with PostgreSQL, dbt, Streamlit, and audited refreshes"
 requires-python = ">=3.11"
 dependencies = ["psycopg[binary]>=3.2,<4", "python-dotenv>=1.0,<2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff>=0.7,<1"]
+dashboard = ["streamlit>=1.45,<2", "pandas>=2.1,<3", "matplotlib>=3.8,<4"]
 
 [project.scripts]
 commerceiq = "commerceiq.cli:main"
+commerceiq-refresh = "commerceiq.refresh_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: requires PostgreSQL"]
-addopts = "-m 'not integration'"
+markers = [
+    "integration: requires PostgreSQL",
+    "reporting: requires populated dbt marts and PostgreSQL",
+]
+addopts = "-m 'not integration and not reporting'"
 
 [tool.ruff]
 line-length = 100

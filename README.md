@@ -1,58 +1,78 @@
 # CommerceIQ — Enterprise Retail Analytics Engineering
 
-End-to-end retail data platform: **Python ingestion → PostgreSQL raw tables → dbt analytics warehouse → BI dashboards (planned)**.
+[![CI](https://github.com/beyzamercanse/commerceiq-retail-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/beyzamercanse/commerceiq-retail-analytics/actions/workflows/ci.yml)
 
-![CI](https://github.com/beyzamercanse/commerceiq-retail-analytics/actions/workflows/ci.yml/badge.svg)
+Portfolio data platform: **Python ingestion → PostgreSQL → dbt warehouse → Streamlit BI → audited refresh and monitoring**.
 
-## Implemented
+## Features
 
-**Phase 1:** nine Olist source contracts, transactional Python CSV ingestion, source-file hashes, PostgreSQL storage, unit/integration tests and CI.
+- **Ingestion:** original nine Olist CSV contracts, transactional batches, SHA-256 idempotency and load lineage.
+- **Analytics:** dbt staging, intermediate one-order aggregation, customer/product/seller dimensions, order/item/payment facts and four marts.
+- **Reporting:** five Streamlit pages — revenue, retention, delivery, reconciliation and operations.
+- **Operations:** \`commerceiq-refresh\` orchestrates ingestion + dbt and records completion status, batch counts, duration timestamps and failure details.
+- **Quality:** Python unit/integration tests, dbt generic and singular SQL tests, GitHub CI and reporting smoke checks.
 
-**Phase 2:** dbt staging (deduplication, casting), intermediate per-order aggregations, dimensional models, line-level facts, daily retail metrics, cohort retention, delivery performance, and payment reconciliation, with SQL tests and CI warehouse build.
+## Quickstart (local)
 
-**Phase 3 planned:** dashboards, scheduling, pipeline monitoring, cloud serving.
-
-## Local quickstart
-
-Prerequisites: Python 3.11+, Docker Compose, Git.
+Prerequisites: Python 3.11+, Docker Compose and Git.
 
 \`\`\`bash
+git clone https://github.com/beyzamercanse/commerceiq-retail-analytics.git
+cd commerceiq-retail-analytics
 cp .env.example .env
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[dev]' 'dbt-postgres>=1.9,<2'
+python -m pip install -e '.[dev,dashboard]' 'dbt-postgres>=1.9,<2'
 docker compose up -d --wait
-commerceiq ingest --data-dir data/sample_olist --strict
-commerceiq status
-pytest
 export DBT_PROFILES_DIR=analytics
-dbt debug --project-dir analytics
-dbt build --project-dir analytics
-dbt docs generate --project-dir analytics
+commerceiq-refresh --data-dir data/sample_olist
+streamlit run dashboard/app.py
 \`\`\`
 
-If your database password is not the default, export matching \`DBT_PASSWORD\`.
+Open the local Streamlit URL printed in your terminal (normally http://localhost:8501).
 
-The bundled sample dataset is synthetic, not actual Olist data. For the real dataset download [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) and place nine original CSVs into \`data/olist/\` (ignored by Git):
+**The included sample data is synthetic.** For real historical analysis, download the original [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), save the original CSVs to \`data/olist/\` (gitignored), then run:
 
 \`\`\`bash
-commerceiq ingest --data-dir data/olist --strict
+commerceiq-refresh --data-dir data/olist
+\`\`\`
+
+Olist data is historical, not a live retail feed. Reconciliation differences are not automatically lost revenue, and item merchandise value is not accounting-recognized revenue.
+
+## Warehouse model grains
+
+| Model | Grain |
+|---|---|
+| \`fct_orders\` | One order |
+| \`fct_order_items\` | One order item |
+| \`fct_payments\` | One payment entry |
+| \`dim_customers\` | One stable customer identity |
+| \`mart_revenue_daily\` | One purchase day |
+| \`mart_payment_reconciliation\` | One order |
+| \`mart_customer_retention\` | Cohort month × months after first purchase |
+| \`mart_delivery_performance\` | One purchase day |
+
+**Data grain safeguard:** order items and split payments are aggregated separately before joining at the order level.
+
+## Run tests
+
+\`\`\`bash
+pytest
+pytest -o addopts= -m integration
+pytest -o addopts= -m reporting
 dbt build --project-dir analytics
 \`\`\`
 
-See [analytics/README.md](analytics/README.md) for model grains and caveats, [architecture](docs/architecture.md), [data contracts](docs/data-contracts.md), and [roadmap](docs/roadmap.md).
+The reporting tests require a built warehouse and an audited refresh. CI provisions a temporary Postgres instance and performs those steps in order.
 
-## Example warehouse models
+## Documentation
 
-| Model | Business grain |
-|---|---|
-| \`fct_orders\` | One row per order |
-| \`fct_order_items\` | One order item |
-| \`fct_payments\` | One payment sequence |
-| \`dim_customers\` | One stable customer identity |
-| \`mart_revenue_daily\` | One purchase date |
-| \`mart_payment_reconciliation\` | One order |
-| \`mart_customer_retention\` | Cohort × month offset |
+- [Architecture](docs/architecture.md)
+- [dbt model design](analytics/README.md)
+- [Data contracts](docs/data-contracts.md)
+- [Operations and recovery](docs/operations.md)
+- [Project roadmap](docs/roadmap.md)
 
-**Double-count protection:** Item facts and payment facts are never joined directly. They are aggregated independently at order grain before being reconciled. Purchase subtotal is **not** GAAP/IFRS revenue and payment differences are investigative signals, not necessarily loss.
+## Scope
 
+This project is runnable locally. A deployed public dashboard, production database, persistent scheduler, and live monitoring are **not included**. GitHub Actions verifies each commit using disposable test infrastructure.
