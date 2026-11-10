@@ -77,6 +77,6 @@ commerceiq-profile --data-dir data/olist --min-orders 90000 --out artifacts/sour
 
 Original data source: [Olist Brazilian E-Commerce on Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce); dataset license [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Public derived reports require attribution and license compliance.
 
-**A live site is not deployed yet.** The CI database is disposable; the full Olist data is not included in this GitHub repository.
+**Railway deployment:** The starter free-plan database is limited to 500 MB, so the hosted option uses a deterministic ~5% sample of real historical Olist customers and their linked transactions. It is not the complete Olist dataset. No cloud URL should be claimed live until the data loader and page health checks pass. CI still uses synthetic fixtures.
 
 **Deployment status:** Code is ready for Streamlit Community Cloud and an externally provisioned PostgreSQL database. No public dashboard URL, persistent database or full Olist verification has been established; CI uses temporary PostgreSQL and synthetic records.

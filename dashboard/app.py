@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import date
 
 import pandas as pd
@@ -170,10 +171,17 @@ def main() -> None:
         "Data: Olist Brazilian E-Commerce (2016–2018), CC BY-NC-SA 4.0 — "
         "[original source](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)."
     )
-    st.warning(
-        "Results use your configured database. Bundled test CSVs are synthetic. "
-        "This is not a live commerce or production system."
-    )
+    data_label = os.environ.get("COMMERCEIQ_DATA_LABEL")
+    if data_label:
+        st.info(
+            f"Dataset: {data_label}. Historical records, not a live feed. "
+            "Merchandise amount is not accounting-recognized revenue."
+        )
+    else:
+        st.warning(
+            "Dataset depends on the connected database. Bundled CSV test fixtures are "
+            "synthetic, and historical Olist records are not a live feed."
+        )
     try:
         dsn = database_url()
         bounds = date_bounds(dsn)

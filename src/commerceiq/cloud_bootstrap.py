@@ -11,6 +11,7 @@ from pathlib import Path
 from commerceiq.audit import run_audit
 from commerceiq.config import database_url
 from commerceiq.ops import refresh
+from commerceiq.sample_olist import build_relational_sample
 from commerceiq.source_profile import inspect_directory
 
 
@@ -74,6 +75,31 @@ def provision_readonly_dashboard_role(dsn: str) -> None:
             raise RuntimeError("The read-only dashboard role unexpectedly has raw order access")
 
 
+def reset_failed_bootstrap_data(dsn: str) -> None:
+    """Clear only this project's incomplete initial warehouse.
+
+    A one-time explicit environment guard protects against accidental data loss.
+    Do not leave the guard enabled after a successful bootstrap.
+    """
+    import psycopg
+
+    if os.getenv("COMMERCEIQ_RESET_FROM_FAILED_FULL_LOAD") != "true":
+        return
+    if os.getenv("DBT_SCHEMA", "analytics") != "analytics":
+        raise RuntimeError("Reset is supported only for the analytics schema prefix")
+
+    with psycopg.connect(dsn, autocommit=True) as conn:
+        for schema in (
+            "analytics_marts",
+            "analytics_intermediate",
+            "analytics_staging",
+            "ops",
+            "raw",
+        ):
+            conn.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+        conn.execute("CHECKPOINT")
+
+
 def main() -> None:
     if os.getenv("COMMERCEIQ_ALLOW_BOOTSTRAP") != "true":
         raise SystemExit("Set COMMERCEIQ_ALLOW_BOOTSTRAP=true to run the one-time load.")
@@ -91,22 +117,40 @@ def main() -> None:
     if validation["status"] != "pass":
         raise SystemExit("Original dataset failed local schema or duplicate-key validation.")
 
+    sample_percent = int(os.getenv("COMMERCEIQ_SAMPLE_PERCENT", "0"))
+    working_dir = directory
+    minimum_orders = 90000
+    if sample_percent:
+        working_dir = Path("/tmp/commerceiq-historical-sample")
+        selected = build_relational_sample(
+            directory, working_dir, percent=sample_percent
+        )
+        minimum_orders = 1000
+        if selected["orders"] < minimum_orders:
+            raise SystemExit("Historical sample is too small for this portfolio deployment.")
+        sample_validation = inspect_directory(working_dir, min_orders=minimum_orders)
+        if sample_validation["status"] != "pass":
+            raise SystemExit("Historical sample failed source quality checks.")
+
+    reset_failed_bootstrap_data(dsn)
     run_id = refresh(
         dsn,
-        directory,
+        working_dir,
         strict=True,
         project_dir=Path("analytics"),
         profiles_dir=Path("analytics"),
     )
-    outcome = run_audit(dsn, min_orders=90000)
+    outcome = run_audit(dsn, min_orders=minimum_orders)
     if outcome["status"] != "pass":
         raise SystemExit("Loaded data failed the warehouse integrity audit.")
 
     provision_readonly_dashboard_role(dsn)
 
-    print(f"Validated historical Olist dataset successfully. Refresh run_id={run_id}.")
+    print(f"Validated Olist historical data; refresh run_id={run_id}.")
     print(f"Loaded order count: {outcome['aggregate_counts']['fact_orders']}")
-    print("This confirms consistency and minimum size, not independent source authenticity.")
+    if sample_percent:
+        print(f"IMPORTANT: this is a deterministic {sample_percent}% customer sample.")
+    print("Consistency checks do not establish source authenticity or completeness.")
 
 
 if __name__ == "__main__":
