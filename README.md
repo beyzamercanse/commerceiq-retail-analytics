@@ -1,5 +1,10 @@
 # CommerceIQ — Enterprise Retail Analytics Engineering
 
+**[Live Railway dashboard](https://commerceiq-dashboard-production.up.railway.app)** · PostgreSQL · dbt · Streamlit
+
+Railway reports a successful web deployment and completed historical sample load: **5,081 Olist orders**. The hosted dataset represents a deterministic **5% customer sample**, not the full original Olist records. CI uses synthetic fixtures; hosted data comes from the historical public Kaggle dataset.
+
+
 [![CI](https://github.com/beyzamercanse/commerceiq-retail-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/beyzamercanse/commerceiq-retail-analytics/actions/workflows/ci.yml)
 
 **Python ingestion → PostgreSQL → dbt warehouse → Streamlit BI → audited refresh**
@@ -77,6 +82,6 @@ commerceiq-profile --data-dir data/olist --min-orders 90000 --out artifacts/sour
 
 Original data source: [Olist Brazilian E-Commerce on Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce); dataset license [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Public derived reports require attribution and license compliance.
 
-**Railway deployment:** The starter free-plan database is limited to 500 MB, so the hosted option uses a deterministic ~5% sample of real historical Olist customers and their linked transactions. It is not the complete Olist dataset. No cloud URL should be claimed live until the data loader and page health checks pass. CI still uses synthetic fixtures.
+**Railway deployment:** The starter free-plan database is limited to 500 MB, so the hosted option uses a deterministic ~5% sample of real historical Olist customers and their linked transactions. It is not the complete Olist dataset. Railway reports a running web service, verified port 8080, and successful source loading. External page access could not be independently checked from the assistant network. CI still uses synthetic fixtures.
 
-**Deployment status:** Code is ready for Streamlit Community Cloud and an externally provisioned PostgreSQL database. No public dashboard URL, persistent database or full Olist verification has been established; CI uses temporary PostgreSQL and synthetic records.
+**Deployment status:** Railway now hosts the public web service and a persistent private PostgreSQL database with a restricted dashboard login. The production database contains 5,081 original historical Olist order records selected by stable customer hashing. The complete Olist dataset has not been loaded and the assistant's external web checker could not fetch the public page.

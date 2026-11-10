@@ -5,9 +5,9 @@
 - [x] Phase 3 — Streamlit dashboards, audited refresh, reporting smoke tests.
 - [x] Phase 4A — Warehouse audit CLI, read-only database role and deployment documentation.
 - [x] Phase 4B code — Full-data CSV profiler, Docker web/loader images, Railway deployment playbook and container CI builds.
-- [ ] Phase 4B hosting — Railway project and private PostgreSQL are provisioned; finish loading and auditing a real historical 5% customer sample, configure the restricted dashboard login and validate the public URL.
+- [x] Phase 4B hosting — Railway PostgreSQL and Streamlit service deployed, deterministic historical 5% sample loaded (5,081 orders), dbt tests passed, restricted reader login configured, Railway-managed public domain assigned.
 - [ ] Optional later — Scale benchmarks, lineage and handling changing source feeds.
 
-**CI validates synthetic inputs; it is not evidence of a live website or full original dataset ingestion.**
+**Production serves sampled historical data, not the full Olist dataset.** Railway reports successful service deployments; an independent external HTTP fetch of the published domain was not possible from this environment. CI continues to validate the synthetic fixtures separately.
 
 See [Railway deployment](railway-deployment.md), [Operations](operations.md), and [Demo](demo_script.md).

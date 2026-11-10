@@ -1,6 +1,6 @@
 # CommerceIQ — Railway deployment playbook
 
-**Current status: code is prepared, but no Railway project, database or public domain has been provisioned.**
+**Deployment:** [CommerceIQ Railway dashboard](https://commerceiq-dashboard-production.up.railway.app). Railway reports a running web service, a persistent private PostgreSQL database, and 5,081 historical Olist orders in a deterministic 5% customer sample. External HTTP loading remains unverified by the assistant's network.
 
 ## Why two services?
 
@@ -43,6 +43,6 @@ For general Railway instructions, see https://docs.railway.com/services and http
 
 The current Railway plan allows only a **500 MB PostgreSQL volume**. Importing all original Olist source rows exceeded that limit. The private loader supports `COMMERCEIQ_SAMPLE_PERCENT=5`, which hashes `customer_unique_id` to select approximately 5% of real historical customers and retains all their related orders, items, payments and reviews. Geographic source records are reduced to one observation per relevant postal prefix because geography is not used by the dashboard marts. **This is not the full dataset** and its statistics must not be described as population-wide estimates.
 
-For this initial deployment only, set `COMMERCEIQ_RESET_FROM_FAILED_FULL_LOAD=true` on the private loader to clear the incomplete earlier raw import before loading the bounded sample. Once the sample finishes, **change that variable to `false`** so a later retry cannot delete the populated warehouse. Do not reset unrelated databases.
+The initial incomplete full-data import was replaced with a clean database volume. The bounded 5% sample load succeeded; **`COMMERCEIQ_RESET_FROM_FAILED_FULL_LOAD=false` and `COMMERCEIQ_ALLOW_BOOTSTRAP=false`** were set afterwards. The old detached failed-import volume was removed. Do not re-enable the reset flag on the populated database.
 
 Keep the public dashboard's `DATABASE_URL` pointed to the least-privilege `commerceiq_dashboard` login, never the PostgreSQL owner account. The loader provisions this reader role after its warehouse audit passes, using `COMMERCEIQ_DASHBOARD_PASSWORD` supplied through Railway variables. The public service uses the role's credentials via Railway environment-variable references.
